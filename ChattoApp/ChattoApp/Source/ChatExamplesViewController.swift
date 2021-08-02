@@ -22,6 +22,7 @@
  THE SOFTWARE.
 */
 
+import Chatto
 import UIKit
 
 class ChatExamplesViewController: CellsViewController {
@@ -51,30 +52,42 @@ class ChatExamplesViewController: CellsViewController {
 
     private func makeOverviewCellItem() -> CellItem {
         return CellItem(title: "Overview", action: { [weak self] in
+            guard let sSelf = self else { return }
+
             let dataSource = DemoChatDataSource(messages: DemoChatMessageFactory.makeOverviewMessages(), pageSize: 50)
-            let viewController = AddRandomMessagesChatViewController()
+            let viewController = AddRandomMessagesChatViewController(
+                keyboardUpdatesHandler: sSelf.makeDefaultKeyboardUpdatesHandler()
+            )
             viewController.dataSource = dataSource
-            self?.navigationController?.pushViewController(viewController, animated: true)
+            sSelf.navigationController?.pushViewController(viewController, animated: true)
         })
     }
 
     private func makeChatCellItem(title: String, messagesCount: Int, shouldUseAlternativePresenter: Bool = false) -> CellItem {
         return CellItem(title: title, action: { [weak self] in
+            guard let sSelf = self else { return }
+
             let dataSource = DemoChatDataSource(count: messagesCount, pageSize: 50)
-            let viewController = AddRandomMessagesChatViewController()
+            let viewController = AddRandomMessagesChatViewController(
+                keyboardUpdatesHandler: sSelf.makeDefaultKeyboardUpdatesHandler()
+            )
             viewController.dataSource = dataSource
             viewController.shouldUseAlternativePresenter = shouldUseAlternativePresenter
-            self?.navigationController?.pushViewController(viewController, animated: true)
+            sSelf.navigationController?.pushViewController(viewController, animated: true)
         })
     }
 
     private func makeMessageSelectionCellItem() -> CellItem {
         return CellItem(title: "Chat with message selection", action: { [weak self] in
+            guard let sSelf = self else { return }
+
             let messages = DemoChatMessageFactory.makeMessagesSelectionMessages()
             let dataSource = DemoChatDataSource(messages: messages, pageSize: 50)
-            let viewController = MessagesSelectionChatViewController()
+            let viewController = MessagesSelectionChatViewController(
+                keyboardUpdatesHandler: sSelf.makeDefaultKeyboardUpdatesHandler()
+            )
             viewController.dataSource = dataSource
-            self?.navigationController?.pushViewController(viewController, animated: true)
+            sSelf.navigationController?.pushViewController(viewController, animated: true)
         })
     }
 
@@ -97,16 +110,23 @@ class ChatExamplesViewController: CellsViewController {
 
     private func makeScrollToBottomCellItem() -> CellItem {
         return CellItem(title: "Scroll To Bottom Button Example", action: { [weak self] in
+            guard let sSelf = self else { return }
+            
             let dataSource = DemoChatDataSource(count: 10_000, pageSize: 50)
-            let viewController = ScrollToBottomButtonChatViewController()
+            let viewController = ScrollToBottomButtonChatViewController(
+                keyboardUpdatesHandler: sSelf.makeDefaultKeyboardUpdatesHandler()
+            )
             viewController.dataSource = dataSource
-            self?.navigationController?.pushViewController(viewController, animated: true)
+            sSelf.navigationController?.pushViewController(viewController, animated: true)
         })
     }
 
     private func makeUpdateItemTypeViewController() -> CellItem {
         return CellItem(title: "Dynamically change item type") { [unowned self] in
-            self.navigationController?.pushViewController(UpdateItemTypeViewController(), animated: true)
+            self.navigationController?.pushViewController(
+                UpdateItemTypeViewController(keyboardUpdatesHandler: self.makeDefaultKeyboardUpdatesHandler()),
+                animated: true
+            )
         }
     }
 
@@ -114,7 +134,7 @@ class ChatExamplesViewController: CellsViewController {
         return CellItem(title: "Compound message examples") { [unowned self] in
             let messages = DemoChatMessageFactory.makeMessagesForCompoundMessageExamples()
             let dataSource = DemoChatDataSource(messages: messages, pageSize: 50)
-            let viewController = DemoChatViewController()
+            let viewController = DemoChatViewController(keyboardUpdatesHandler: self.makeDefaultKeyboardUpdatesHandler())
             viewController.dataSource = dataSource
             self.navigationController?.pushViewController(viewController, animated: true)
         }
@@ -124,7 +144,7 @@ class ChatExamplesViewController: CellsViewController {
         return CellItem(title: "Compound message layout") { [unowned self] in
             let messages = DemoChatMessageFactory.makeMessagesForCompoundMessageLayout()
             let dataSource = DemoChatDataSource(messages: messages, pageSize: 50)
-            let viewController = DemoChatViewController()
+            let viewController = DemoChatViewController(keyboardUpdatesHandler: self.makeDefaultKeyboardUpdatesHandler())
             viewController.dataSource = dataSource
             self.navigationController?.pushViewController(viewController, animated: true)
         }
@@ -132,14 +152,28 @@ class ChatExamplesViewController: CellsViewController {
 
     private func makeTestItemsReloadingCellItem() -> CellItem {
         return CellItem(title: "Test items reloading") { [unowned self] in
-            self.navigationController?.pushViewController(TestItemsReloadingViewController(), animated: true)
+            self.navigationController?.pushViewController(
+                TestItemsReloadingViewController(keyboardUpdatesHandler: self.makeDefaultKeyboardUpdatesHandler()),
+                animated: true
+            )
         }
     }
 
     private func makeAsyncAvatarLoadingCellItem() -> CellItem {
         return CellItem(title: "Async avatar loading") { [unowned self] in
-            self.navigationController?.pushViewController(AsyncAvatarLoadingViewController(), animated: true)
+            self.navigationController?.pushViewController(
+                AsyncAvatarLoadingViewController(keyboardUpdatesHandler: self.makeDefaultKeyboardUpdatesHandler()),
+                animated: true
+            )
         }
+    }
+
+    private func makeDefaultKeyboardUpdatesHandler() -> KeyboardUpdatesHandlerProtocol {
+        let keyboardTracker = KeyboardTracker(notificationCenter: .default)
+        return KeyboardUpdatesHandler(
+            keyboardTracker: keyboardTracker,
+            keyboardUpdatesAnimator: StaticKeyboardUpdatesAnimator(inputContainerBottomBaseOffset: 0)
+        )
     }
 
     @objc

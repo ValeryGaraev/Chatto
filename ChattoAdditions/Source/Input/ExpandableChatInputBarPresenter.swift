@@ -185,7 +185,7 @@ public class ExpandableChatInputBarPresenter: NSObject, ChatInputBarPresenter {
         if self.focusedItem == nil || self.focusedItem?.presentationMode == .keyboard {
             inputPositionController.changeInputContentBottomMarginTo(bottomMargin, animated: false, callback: nil)
         } else if let item = self.focusedItem {
-            switch keyboardStatus {
+            switch keyboardStatus.state {
             case .shown, .showing:
                 inputPositionController.changeInputContentBottomMarginTo(self.expandedInputViewHeight(forItem: item), animated: true, callback: nil)
             case .hidden, .hiding:
@@ -303,7 +303,7 @@ extension ExpandableChatInputBarPresenter: ScrollViewEventsHandling {
         guard let inputPositionController = self.inputPositionController else { return }
         guard let view = scrollView.panGestureRecognizer.view else { return }
         let velocity = scrollView.panGestureRecognizer.velocity(in: view)
-        let location = scrollView.panGestureRecognizer.location(in: inputPositionController.inputBarContainer)
+        let location = scrollView.panGestureRecognizer.location(in: inputPositionController.inputBarContainerView)
         switch scrollView.panGestureRecognizer.state {
         case .changed:
             self.onScrollViewDidScroll(velocity: velocity, location: location)

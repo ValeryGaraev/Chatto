@@ -22,6 +22,7 @@
  THE SOFTWARE.
 */
 
+import Chatto
 import UIKit
 
 class ChatWithTabBarExamplesViewController: CellsViewController {
@@ -51,7 +52,14 @@ class ChatWithTabBarExamplesViewController: CellsViewController {
 
     private func pushChatViewController(hidesBottomBar: Bool) {
         let dataSource = DemoChatDataSource(count: 0, pageSize: 50)
-        let viewController = AddRandomMessagesChatViewController()
+        let keyboardTracker = KeyboardTracker(notificationCenter: .default)
+        let inputBarKeyboardHandler = KeyboardUpdatesHandler(
+            keyboardTracker: keyboardTracker,
+            keyboardUpdatesAnimator: StaticKeyboardUpdatesAnimator(inputContainerBottomBaseOffset: 0)
+        )
+        let viewController = AddRandomMessagesChatViewController(
+            keyboardUpdatesHandler: inputBarKeyboardHandler
+        )
         viewController.dataSource = dataSource
         viewController.hidesBottomBarWhenPushed = hidesBottomBar
         self.navigationController?.pushViewController(viewController, animated: true)

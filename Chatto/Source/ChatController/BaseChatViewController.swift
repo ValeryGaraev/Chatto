@@ -42,7 +42,10 @@ open class BaseChatViewController: UIViewController,
                                    UICollectionViewDelegate,
                                    ChatDataSourceDelegateProtocol,
                                    InputPositionControlling,
-                                   ReplyIndicatorRevealerDelegate {
+                                   ReplyIndicatorRevealerDelegate,
+                                   KeyboardInputAdjustableViewController {
+
+    private let keyboardUpdatesHandler: KeyboardUpdatesHandlerProtocol
 
     open weak var keyboardEventsHandler: KeyboardEventsHandling?
     open weak var scrollViewEventsHandler: ScrollViewEventsHandling?
@@ -111,6 +114,17 @@ open class BaseChatViewController: UIViewController,
         }
     }
 
+
+    public init(keyboardUpdatesHandler: KeyboardUpdatesHandlerProtocol) {
+        self.keyboardUpdatesHandler = keyboardUpdatesHandler
+
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required public init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     deinit {
         self.collectionView?.delegate = nil
         self.collectionView?.dataSource = nil
@@ -150,12 +164,12 @@ open class BaseChatViewController: UIViewController,
 
     open override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.keyboardTracker.startTracking()
+        self.keyboardUpdatesHandler.startTracking()
     }
 
     open override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        self.keyboardTracker?.stopTracking()
+        self.keyboardUpdatesHandler.stopTracking()
     }
 
     private func addCollectionView() {
@@ -204,36 +218,36 @@ open class BaseChatViewController: UIViewController,
     var unfinishedBatchUpdatesCount: Int = 0
     var onAllBatchUpdatesFinished: (() -> Void)?
 
-    var inputContainerBottomConstraint: NSLayoutConstraint!
+    public var inputContainerViewBottomConstraint: NSLayoutConstraint!
     private func addInputBarContainer() {
-        self.inputBarContainer = UIView(frame: CGRect.zero)
-        self.inputBarContainer.autoresizingMask = UIView.AutoresizingMask()
-        self.inputBarContainer.translatesAutoresizingMaskIntoConstraints = false
-        self.inputBarContainer.backgroundColor = .white
-        self.view.addSubview(self.inputBarContainer)
+        self.inputBarContainerView = UIView(frame: CGRect.zero)
+        self.inputBarContainerView.autoresizingMask = UIView.AutoresizingMask()
+        self.inputBarContainerView.translatesAutoresizingMaskIntoConstraints = false
+        self.inputBarContainerView.backgroundColor = .white
+        self.view.addSubview(self.inputBarContainerView)
         NSLayoutConstraint.activate([
-            self.inputBarContainer.topAnchor.constraint(greaterThanOrEqualTo: self.view.safeAreaLayoutGuide.topAnchor)
+            self.inputBarContainerView.topAnchor.constraint(greaterThanOrEqualTo: self.view.safeAreaLayoutGuide.topAnchor)
         ])
         let guide = self.view.safeAreaLayoutGuide
         let leadingAnchor: NSLayoutXAxisAnchor = guide.leadingAnchor
         let trailingAnchor: NSLayoutXAxisAnchor = guide.trailingAnchor
 
         NSLayoutConstraint.activate([
-            self.inputBarContainer.leadingAnchor.constraint(equalTo: leadingAnchor),
-            self.inputBarContainer.trailingAnchor.constraint(equalTo: trailingAnchor)
+            self.inputBarContainerView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            self.inputBarContainerView.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
-        self.inputContainerBottomConstraint = self.view.bottomAnchor.constraint(equalTo: self.inputBarContainer.bottomAnchor)
-        self.view.addConstraint(self.inputContainerBottomConstraint)
+        self.inputContainerViewBottomConstraint = self.view.bottomAnchor.constraint(equalTo: self.inputBarContainerView.bottomAnchor)
+        self.view.addConstraint(self.inputContainerViewBottomConstraint)
     }
 
     private func addInputView() {
         let inputView = self.createChatInputView()
-        self.inputBarContainer.addSubview(inputView)
+        self.inputBarContainerView.addSubview(inputView)
         NSLayoutConstraint.activate([
-            self.inputBarContainer.topAnchor.constraint(equalTo: inputView.topAnchor),
-            self.inputBarContainer.bottomAnchor.constraint(equalTo: inputView.bottomAnchor),
-            self.inputBarContainer.leadingAnchor.constraint(equalTo: inputView.leadingAnchor),
-            self.inputBarContainer.trailingAnchor.constraint(equalTo: inputView.trailingAnchor)
+            self.inputBarContainerView.topAnchor.constraint(equalTo: inputView.topAnchor),
+            self.inputBarContainerView.bottomAnchor.constraint(equalTo: inputView.bottomAnchor),
+            self.inputBarContainerView.leadingAnchor.constraint(equalTo: inputView.leadingAnchor),
+            self.inputBarContainerView.trailingAnchor.constraint(equalTo: inputView.trailingAnchor)
         ])
     }
 
@@ -247,7 +261,7 @@ open class BaseChatViewController: UIViewController,
             self.view.bottomAnchor.constraint(equalTo: self.inputContentContainer.bottomAnchor),
             self.view.leadingAnchor.constraint(equalTo: self.inputContentContainer.leadingAnchor),
             self.view.trailingAnchor.constraint(equalTo: self.inputContentContainer.trailingAnchor),
-            self.inputContentContainer.topAnchor.constraint(equalTo: self.inputBarContainer.bottomAnchor)
+            self.inputContentContainer.topAnchor.constraint(equalTo: self.inputBarContainerView.bottomAnchor)
         ])
     }
 
@@ -267,27 +281,18 @@ open class BaseChatViewController: UIViewController,
     }
 
     private func updateInputContainerBottomConstraint() {
-        self.inputContainerBottomConstraint.constant = max(self.inputContainerBottomBaseOffset, self.inputContainerBottomAdditionalOffset)
+        self.inputContainerViewBottomConstraint.constant = max(self.inputContainerBottomBaseOffset, self.inputContainerBottomAdditionalOffset)
         self.view.setNeedsLayout()
     }
 
     var isAdjustingInputContainer: Bool = false
 
     open func setupKeyboardTracker() {
-        let heightBlock = { [weak self] (bottomMargin: CGFloat, keyboardStatus: KeyboardStatus) in
-            guard let sSelf = self else { return }
-            if let keyboardObservingDelegate = sSelf.keyboardEventsHandler {
-                keyboardObservingDelegate.onKeyboardStateDidChange(bottomMargin, keyboardStatus)
-            } else {
-                sSelf.changeInputContentBottomMarginTo(bottomMargin)
-            }
-        }
-        self.keyboardTracker = KeyboardTracker(viewController: self, inputBarContainer: self.inputBarContainer, heightBlock: heightBlock, notificationCenter: self.notificationCenter)
+        self.keyboardUpdatesHandler.configure(for: self)
 
-        (self.view as? BaseChatViewControllerViewProtocol)?.bmaInputAccessoryView = self.keyboardTracker?.trackingView
+        (self.view as? BaseChatViewControllerViewProtocol)?.bmaInputAccessoryView = self.keyboardUpdatesHandler.keyboardTrackingView
     }
 
-    var notificationCenter = NotificationCenter.default
     var keyboardTracker: KeyboardTracker!
 
     public private(set) var isFirstLayout: Bool = true
@@ -295,7 +300,7 @@ open class BaseChatViewController: UIViewController,
         super.viewDidLayoutSubviews()
 
         self.adjustCollectionViewInsets(shouldUpdateContentOffset: true)
-        self.keyboardTracker.adjustTrackingViewSizeIfNeeded()
+        self.keyboardUpdatesHandler.adjustLayoutIfNeeded()
 
         if self.isFirstLayout {
             self.updateQueue.start()
@@ -307,7 +312,7 @@ open class BaseChatViewController: UIViewController,
 
     public var allContentFits: Bool {
         guard let collectionView = self.collectionView else { return false }
-        let inputHeightWithKeyboard = self.view.bounds.height - self.inputBarContainer.frame.minY
+        let inputHeightWithKeyboard = self.view.bounds.height - self.inputBarContainerView.frame.minY
         let insetTop = self.view.safeAreaInsets.top + self.layoutConfiguration.contentInsets.top
         let insetBottom = self.layoutConfiguration.contentInsets.bottom + inputHeightWithKeyboard
         let availableHeight = collectionView.bounds.height - (insetTop + insetBottom)
@@ -322,7 +327,7 @@ open class BaseChatViewController: UIViewController,
         let isBouncingAtTop = isInteracting && collectionView.contentOffset.y < -collectionView.contentInset.top
         if !self.placeMessagesFromBottom && isBouncingAtTop { return }
 
-        let inputHeightWithKeyboard = self.view.bounds.height - self.inputBarContainer.frame.minY
+        let inputHeightWithKeyboard = self.view.bounds.height - self.inputBarContainerView.frame.minY
         let newInsetBottom = self.layoutConfiguration.contentInsets.bottom + inputHeightWithKeyboard
         let insetBottomDiff = newInsetBottom - collectionView.contentInset.bottom
         var newInsetTop = self.view.safeAreaInsets.top + self.layoutConfiguration.contentInsets.top
@@ -374,7 +379,7 @@ open class BaseChatViewController: UIViewController,
 
         guard shouldUpdateContentOffset else { return }
 
-        let inputIsAtBottom = self.view.bounds.maxY - self.inputBarContainer.frame.maxY <= 0
+        let inputIsAtBottom = self.view.bounds.maxY - self.inputBarContainerView.frame.maxY <= 0
         if isInteracting && (needToPlaceMessagesAtBottom || needToUpdateContentInset) {
             collectionView.contentOffset.y = prevContentOffsetY
         } else if self.allContentFits {
@@ -393,7 +398,7 @@ open class BaseChatViewController: UIViewController,
 
     var autoLoadingEnabled: Bool = false
     var cellPanGestureHandler: CellPanGestureHandler!
-    public private(set) var inputBarContainer: UIView!
+    public private(set) var inputBarContainerView: UIView!
     public private(set) var inputContentContainer: UIView!
     public internal(set) var presenterFactory: ChatItemPresenterFactoryProtocol!
     let presentersByCell = NSMapTable<UICollectionViewCell, AnyObject>(keyOptions: .weakMemory, valueOptions: .weakMemory)
@@ -485,7 +490,7 @@ open class BaseChatViewController: UIViewController,
     }
 
     open var inputContentBottomMargin: CGFloat {
-        return self.inputContainerBottomConstraint.constant
+        return self.inputContainerViewBottomConstraint.constant
     }
 
     open func changeInputContentBottomMarginTo(_ newValue: CGFloat, animated: Bool = false, callback: (() -> Void)? = nil) {
@@ -493,7 +498,7 @@ open class BaseChatViewController: UIViewController,
     }
 
     open func changeInputContentBottomMarginTo(_ newValue: CGFloat, animated: Bool = false, duration: CFTimeInterval, initialSpringVelocity: CGFloat = 0.0, callback: (() -> Void)? = nil) {
-        guard self.inputContainerBottomConstraint.constant != newValue else { callback?(); return }
+        guard self.inputContainerViewBottomConstraint.constant != newValue else { callback?(); return }
         if animated {
             self.isAdjustingInputContainer = true
             self.inputContainerBottomAdditionalOffset = newValue
@@ -515,7 +520,7 @@ open class BaseChatViewController: UIViewController,
     }
 
     open func changeInputContentBottomMarginTo(_ newValue: CGFloat, animated: Bool = false, duration: CFTimeInterval, timingFunction: CAMediaTimingFunction, callback: (() -> Void)? = nil) {
-        guard self.inputContainerBottomConstraint.constant != newValue else { callback?(); return }
+        guard self.inputContainerViewBottomConstraint.constant != newValue else { callback?(); return }
         if animated {
             self.isAdjustingInputContainer = true
             CATransaction.begin()

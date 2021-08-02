@@ -35,10 +35,19 @@ func createFakeChatItems(count: Int) -> [ChatItemProtocol] {
 
 final class TesteableChatViewController: BaseChatViewController {
     let presenterBuilders: [ChatItemType: [ChatItemPresenterBuilderProtocol]]
+    let notificationCenter: NotificationCenter
     let chatInputView = UIView()
+
     init(presenterBuilders: [ChatItemType: [ChatItemPresenterBuilderProtocol]] = [ChatItemType: [ChatItemPresenterBuilderProtocol]]()) {
         self.presenterBuilders = presenterBuilders
-        super.init(nibName: nil, bundle: nil)
+
+        let notificationCenter = NotificationCenter()
+        self.notificationCenter = notificationCenter
+
+        super.init(
+            keyboardUpdatesHandler: Self.makeDefaultKeyboardUpdatesHandler(notificationCenter: notificationCenter)
+        )
+
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -51,6 +60,14 @@ final class TesteableChatViewController: BaseChatViewController {
 
     override func createChatInputView() -> UIView {
         return self.chatInputView
+    }
+
+    private static func makeDefaultKeyboardUpdatesHandler(notificationCenter: NotificationCenter) -> KeyboardUpdatesHandlerProtocol {
+        let keyboardTracker = KeyboardTracker(notificationCenter: notificationCenter)
+        return KeyboardUpdatesHandler(
+            keyboardTracker: keyboardTracker,
+            keyboardUpdatesAnimator: StaticKeyboardUpdatesAnimator(inputContainerBottomBaseOffset: 0)
+        )
     }
 }
 

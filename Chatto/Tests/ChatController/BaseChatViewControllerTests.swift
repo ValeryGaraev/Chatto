@@ -208,8 +208,7 @@ class ChatViewControllerTests: XCTestCase {
 
     func testThat_LayoutAdaptsWhenKeyboardIsShown() {
         let controller = TesteableChatViewController()
-        let notificationCenter = NotificationCenter()
-        controller.notificationCenter = notificationCenter
+        let notificationCenter = controller.notificationCenter
         let fakeDataSource = FakeDataSource()
         fakeDataSource.chatItems = createFakeChatItems(count: 2)
         controller.chatDataSource = fakeDataSource
@@ -220,8 +219,7 @@ class ChatViewControllerTests: XCTestCase {
 
     func testThat_LayoutAdaptsWhenKeyboardIsHidden() {
         let controller = TesteableChatViewController()
-        let notificationCenter = NotificationCenter()
-        controller.notificationCenter = notificationCenter
+        let notificationCenter = controller.notificationCenter
         let fakeDataSource = FakeDataSource()
         fakeDataSource.chatItems = createFakeChatItems(count: 2)
         controller.chatDataSource = fakeDataSource
