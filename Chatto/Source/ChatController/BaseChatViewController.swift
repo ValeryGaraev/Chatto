@@ -293,8 +293,6 @@ open class BaseChatViewController: UIViewController,
         (self.view as? BaseChatViewControllerViewProtocol)?.bmaInputAccessoryView = self.keyboardUpdatesHandler.keyboardTrackingView
     }
 
-    var keyboardTracker: KeyboardTracker!
-
     public private(set) var isFirstLayout: Bool = true
     override open func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
@@ -479,10 +477,6 @@ open class BaseChatViewController: UIViewController,
 
     open func chatDataSourceDidUpdate(_ chatDataSource: ChatDataSourceProtocol) {
         self.enqueueModelUpdate(updateType: .normal)
-    }
-
-    public var keyboardStatus: KeyboardStatus {
-        return self.keyboardTracker.keyboardStatus
     }
 
     public var maximumInputSize: CGSize {
